@@ -1,70 +1,23 @@
 from flask import Flask, jsonify, request
-from flask_pymongo import PyMongo
-from flask_cors import CORS
-
-from bson import ObjectId
-
-# Instantiation
+#from flask_pymongo import PyMongo
+from flask_cors import CORS,cross_origin
+import base64
 app = Flask(__name__)
-app.config['MONGO_URI'] = 'mongodb://localhost/pythonreact'
-mongo = PyMongo(app)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# Settings
-CORS(app)
+@app.route("/api/v1/users", methods=['POST'])
+def list_users():
+  imagenes = request.get_json()
+  base64_img_bytes = imagenes["datos"].encode('utf-8')
+  with open('decoded_image.png', 'wb') as file_to_save:
+     decoded_image_data = base64.decodebytes(base64_img_bytes)
+     file_to_save.write(decoded_image_data)
+  return imagenes["datos"]
 
-# Database
-db = mongo.db.pythonreact
-
-# Routes
-@app.route('/users', methods=['POST'])
-def createUser():
-  print(request.json)
-  id = db.insert({
-    'name': request.json['name'],
-    'email': request.json['email'],
-    'password': request.json['password']
-  })
-  return jsonify(str(ObjectId(id)))
-
-
-@app.route('/users', methods=['GET'])
-def getUsers():
-    users = []
-    for doc in db.find():
-        users.append({
-            '_id': str(ObjectId(doc['_id'])),
-            'name': doc['name'],
-            'email': doc['email'],
-            'password': doc['password']
-        })
-    return jsonify(users)
-
-@app.route('/users/<id>', methods=['GET'])
-def getUser(id):
-  user = db.find_one({'_id': ObjectId(id)})
-  print(user)
-  return jsonify({
-      '_id': str(ObjectId(user['_id'])),
-      'name': user['name'],
-      'email': user['email'],
-      'password': user['password']
-  })
-
-
-@app.route('/users/<id>', methods=['DELETE'])
-def deleteUser(id):
-  db.delete_one({'_id': ObjectId(id)})
-  return jsonify({'message': 'User Deleted'})
-
-@app.route('/users/<id>', methods=['PUT'])
-def updateUser(id):
-  print(request.json)
-  db.update_one({'_id': ObjectId(id)}, {"$set": {
-    'name': request.json['name'],
-    'email': request.json['email'],
-    'password': request.json['password']
-  }})
-  return jsonify({'message': 'User Updated'})
+@app.route("/")
+@cross_origin()
+def helloWorld():
+  return "Hello world!" 
 
 if __name__ == "__main__":
     app.run(debug=True)
